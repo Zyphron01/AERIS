@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 
 export type ThemeMode = "light" | "dark";
 
@@ -26,50 +33,63 @@ function applyThemeToDocument(mode: ThemeMode): void {
   }
 }
 
+function getThemeSnapshot(): ThemeMode {
+  if (typeof window === "undefined") return "light";
+  try {
+    const stored = (localStorage.getItem(THEME_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_THEME_STORAGE_KEY)) as ThemeMode | null;
+    if (stored === "dark" || stored === "light") {
+      return stored;
+    }
+    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+  } catch {
+    // storage unavailable
+  }
+  return "light";
+}
+
+function getThemeServerSnapshot(): ThemeMode {
+  return "light";
+}
+
+function subscribeToTheme(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", callback);
+  window.addEventListener("aeris_theme_updated", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("aeris_theme_updated", callback);
+  };
+}
+
 export function ThemeProvider({
   children,
 }: {
   readonly children: React.ReactNode;
 }): React.JSX.Element {
-  const [theme, setThemeState] = useState<ThemeMode>(() => {
-    if (typeof window === "undefined") return "light";
-    try {
-      const stored = (localStorage.getItem(THEME_STORAGE_KEY) ||
-        localStorage.getItem(LEGACY_THEME_STORAGE_KEY)) as ThemeMode | null;
-      if (stored === "dark" || stored === "light") {
-        return stored;
-      }
-    } catch {
-      // storage unavailable
-    }
-    return "light";
-  });
+  // useSyncExternalStore ensures:
+  // 1. Server snapshot returns "light"
+  // 2. Client first render uses server snapshot ("light") to guarantee 100% hydration match
+  // 3. Client immediately synchronizes with stored preference cleanly without cascading setState in effects
+  const theme = useSyncExternalStore(
+    subscribeToTheme,
+    getThemeSnapshot,
+    getThemeServerSnapshot
+  );
 
-  // On client mount, ensure DOM class is synchronized with initial state
+  // Synchronize DOM class whenever theme updates
   useEffect(() => {
     applyThemeToDocument(theme);
-
-    // Sync across tabs
-    const handleStorage = (e: StorageEvent): void => {
-      if (e.key === THEME_STORAGE_KEY || e.key === LEGACY_THEME_STORAGE_KEY) {
-        const next = e.newValue as ThemeMode | null;
-        if (next === "dark" || next === "light") {
-          setThemeState(next);
-          applyThemeToDocument(next);
-        }
-      }
-    };
-
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
   }, [theme]);
 
   const setTheme = useCallback((nextTheme: ThemeMode): void => {
-    setThemeState(nextTheme);
     applyThemeToDocument(nextTheme);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
       localStorage.setItem(LEGACY_THEME_STORAGE_KEY, nextTheme);
+      window.dispatchEvent(new Event("aeris_theme_updated"));
     } catch {
       // ignore storage errors
     }

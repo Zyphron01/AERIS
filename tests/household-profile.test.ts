@@ -103,10 +103,27 @@ describe("Household Profile Validation & Storage Protocols", () => {
       expect(getStoredHouseholdProfile()).toBeNull();
     });
 
-    it("gracefully handles corrupted JSON in localStorage", () => {
+    it("gracefully handles corrupted JSON and empty strings without throwing", () => {
       window.localStorage.setItem(STORAGE_KEY_HOUSEHOLD_PROFILE, "{invalid-json-data}");
+      expect(getStoredHouseholdProfile()).toBeNull();
+
+      window.localStorage.setItem(STORAGE_KEY_HOUSEHOLD_PROFILE, "");
+      expect(getStoredHouseholdProfile()).toBeNull();
+
+      window.localStorage.setItem(STORAGE_KEY_HOUSEHOLD_PROFILE, "   ");
+      expect(getStoredHouseholdProfile()).toBeNull();
+
+      window.localStorage.setItem(STORAGE_KEY_HOUSEHOLD_PROFILE, "undefined");
+      expect(getStoredHouseholdProfile()).toBeNull();
+    });
+
+    it("migrates legacy profile keys to v1 key", () => {
+      window.localStorage.setItem("aeris_household_profile", JSON.stringify(DEFAULT_DEMO_PROFILE));
       const retrieved = getStoredHouseholdProfile();
-      expect(retrieved).toBeNull();
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.id).toBe(DEFAULT_DEMO_PROFILE.id);
+      // Migrated to v1
+      expect(window.localStorage.getItem(STORAGE_KEY_HOUSEHOLD_PROFILE)).not.toBeNull();
     });
   });
 });

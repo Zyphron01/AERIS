@@ -14,11 +14,11 @@ import {
 } from "@/components/dashboard/telemetry-state-views";
 import { DEFAULT_LOCATION } from "@/lib/telemetry/locations";
 import type { LocationMetadata, NormalizedTelemetry } from "@/lib/telemetry/types";
-import { HouseholdProfileSchema } from "@/lib/decision-engine/schemas";
 import {
   subscribeToHouseholdProfile,
   getHouseholdProfileSnapshot,
   getHouseholdProfileServerSnapshot,
+  safeParseHouseholdProfile,
 } from "@/lib/decision-engine/household-profile";
 import type {
   RoomDimensions,
@@ -46,14 +46,7 @@ export default function IndoorAirPage(): React.JSX.Element {
   );
 
   const profile = useMemo(() => {
-    if (!rawProfile) return null;
-    try {
-      const parsed = JSON.parse(rawProfile);
-      const validated = HouseholdProfileSchema.safeParse(parsed);
-      return validated.success ? validated.data : null;
-    } catch {
-      return null;
-    }
+    return safeParseHouseholdProfile(rawProfile);
   }, [rawProfile]);
 
   // Initial user-reported conditions

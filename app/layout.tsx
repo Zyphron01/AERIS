@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";
 
@@ -22,11 +23,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>): React.JSX.Element {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-      </head>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="antialiased selection:bg-teal-500 selection:text-white">
+        <Script
+          id="aeris-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }}
+        />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

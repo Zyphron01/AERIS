@@ -8,6 +8,10 @@ import { HouseholdProfileSchema } from "./schemas";
 import type { HouseholdProfile } from "./types";
 
 export const STORAGE_KEY_HOUSEHOLD_PROFILE = "aeris_household_profile_v1";
+export const LEGACY_STORAGE_KEYS = [
+  "aeris_household_profile",
+  "aeris-household-profile",
+] as const;
 
 export const DEFAULT_DEMO_PROFILE: HouseholdProfile = {
   id: "demo-profile-delhi",
@@ -24,6 +28,37 @@ export const DEFAULT_DEMO_PROFILE: HouseholdProfile = {
 };
 
 /**
+ * Safely parses and validates a raw household profile string.
+ * Never throws SyntaxError on corrupted or empty input.
+ */
+export function safeParseHouseholdProfile(
+  raw: string | null | undefined
+): HouseholdProfile | null {
+  if (!raw || typeof raw !== "string") {
+    return null;
+  }
+  const trimmed = raw.trim();
+  if (
+    !trimmed ||
+    trimmed === "undefined" ||
+    trimmed === "null" ||
+    trimmed === "{}"
+  ) {
+    return null;
+  }
+  try {
+    const parsedJson = JSON.parse(trimmed);
+    if (!parsedJson || typeof parsedJson !== "object") {
+      return null;
+    }
+    const validated = HouseholdProfileSchema.safeParse(parsedJson);
+    return validated.success ? validated.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Retrieves the stored household profile from browser localStorage.
  * Returns null if not present, unparseable, or invalid according to Zod schema.
  */
@@ -33,18 +68,25 @@ export function getStoredHouseholdProfile(): HouseholdProfile | null {
   }
 
   try {
+    // 1. Check primary v1 storage key
     const raw = window.localStorage.getItem(STORAGE_KEY_HOUSEHOLD_PROFILE);
+    const parsed = safeParseHouseholdProfile(raw);
+    if (parsed) {
+      return parsed;
+    }
+
+    // 2. Check legacy storage keys and migrate forward if valid
     if (!raw) {
-      return null;
+      for (const legacyKey of LEGACY_STORAGE_KEYS) {
+        const legacyRaw = window.localStorage.getItem(legacyKey);
+        const legacyParsed = safeParseHouseholdProfile(legacyRaw);
+        if (legacyParsed) {
+          saveHouseholdProfile(legacyParsed);
+          return legacyParsed;
+        }
+      }
     }
 
-    const parsedJson = JSON.parse(raw);
-    const validated = HouseholdProfileSchema.safeParse(parsedJson);
-    if (validated.success) {
-      return validated.data;
-    }
-
-    console.warn("Stored household profile failed schema validation:", validated.error.format());
     return null;
   } catch (err) {
     console.error("Error reading stored household profile:", err);
@@ -80,8 +122,15 @@ export function saveHouseholdProfile(profile: unknown): { success: boolean; data
  */
 export function clearHouseholdProfile(): void {
   if (typeof window !== "undefined") {
-    window.localStorage.removeItem(STORAGE_KEY_HOUSEHOLD_PROFILE);
-    window.dispatchEvent(new Event("aeris_profile_updated"));
+    try {
+      window.localStorage.removeItem(STORAGE_KEY_HOUSEHOLD_PROFILE);
+      for (const legacyKey of LEGACY_STORAGE_KEYS) {
+        window.localStorage.removeItem(legacyKey);
+      }
+      window.dispatchEvent(new Event("aeris_profile_updated"));
+    } catch {
+      // storage unavailable
+    }
   }
 }
 
@@ -107,7 +156,26 @@ export function getHouseholdProfileSnapshot(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
-  return window.localStorage.getItem(STORAGE_KEY_HOUSEHOLD_PROFILE);
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY_HOUSEHOLD_PROFILE);
+    if (raw && raw.trim() && raw.trim() !== "undefined" && raw.trim() !== "null") {
+      return raw;
+    }
+    for (const legacyKey of LEGACY_STORAGE_KEYS) {
+      const legacyRaw = window.localStorage.getItem(legacyKey);
+      if (
+        legacyRaw &&
+        legacyRaw.trim() &&
+        legacyRaw.trim() !== "undefined" &&
+        legacyRaw.trim() !== "null"
+      ) {
+        return legacyRaw;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**

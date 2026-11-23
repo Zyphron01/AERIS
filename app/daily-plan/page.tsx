@@ -14,13 +14,13 @@ import {
 import { DEFAULT_LOCATION } from "@/lib/telemetry/locations";
 import type { LocationMetadata, NormalizedTelemetry } from "@/lib/telemetry/types";
 import type { HouseholdProfile, DailyPlanResult } from "@/lib/decision-engine/types";
-import { HouseholdProfileSchema } from "@/lib/decision-engine/schemas";
 import {
   saveHouseholdProfile,
   clearHouseholdProfile,
   subscribeToHouseholdProfile,
   getHouseholdProfileSnapshot,
   getHouseholdProfileServerSnapshot,
+  safeParseHouseholdProfile,
 } from "@/lib/decision-engine/household-profile";
 import { evaluateDailyPlan } from "@/lib/decision-engine/engine";
 import { AiExplanationDrawer } from "@/components/daily-plan/ai-explanation-drawer";
@@ -55,14 +55,7 @@ export default function DailyPlanPage(): React.JSX.Element {
   );
 
   const profile = useMemo(() => {
-    if (!rawProfile) return null;
-    try {
-      const parsed = JSON.parse(rawProfile);
-      const validated = HouseholdProfileSchema.safeParse(parsed);
-      return validated.success ? validated.data : null;
-    } catch {
-      return null;
-    }
+    return safeParseHouseholdProfile(rawProfile);
   }, [rawProfile]);
 
   const [isWizardOpen, setIsWizardOpen] = useState<boolean>(false);
@@ -76,7 +69,8 @@ export default function DailyPlanPage(): React.JSX.Element {
     try {
       const res = await fetch(`/api/telemetry?locationId=${location.id}`);
       if (!res.ok) {
-        throw new Error(`Environmental telemetry endpoint returned status ${res.status}`);
+        const errorJson = await res.json().catch(() => null);
+        throw new Error(errorJson?.error || `Environmental telemetry endpoint returned status ${res.status}`);
       }
       const data: NormalizedTelemetry = await res.json();
       setTelemetry(data);
@@ -95,7 +89,8 @@ export default function DailyPlanPage(): React.JSX.Element {
       try {
         const res = await fetch(`/api/telemetry?locationId=${selectedLocation.id}`);
         if (!res.ok) {
-          throw new Error(`Environmental telemetry endpoint returned status ${res.status}`);
+          const errorJson = await res.json().catch(() => null);
+          throw new Error(errorJson?.error || `Environmental telemetry endpoint returned status ${res.status}`);
         }
         const data: NormalizedTelemetry = await res.json();
         if (!canceled) {
