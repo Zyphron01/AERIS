@@ -2,70 +2,35 @@
 
 > **Know your air. Shape your day.**
 
-AERIS is an environmental intelligence platform that transforms modeled atmospheric data into contextual daily decisions. Instead of merely displaying raw particulate readings, AERIS evaluates personal vulnerability, household routines, and weather patterns to answer: **"What specific action should I take right now to protect my health?"**
+AERIS is an environmental decision-support platform that transforms modeled atmospheric data into contextual, actionable daily choices. Rather than presenting static concentration figures ($\mu\text{g/m}^3$) in isolation, AERIS evaluates personal vulnerability, household routines, commute preferences, and meteorological patterns to answer: **"What specific, verifiable action should I take right now to protect my health?"**
 
 ---
 
-## Product Showcase
+## Core Capabilities
 
-### 1. Interactive Liquid Sculpture Hero (WebGL2)
-Simulates fluid atmospheric particle transport with instanced GPGPU shaders and real-time pointer disturbance.
+### 1. Interactive Atmospheric Particle Simulation
+- Real-time WebGL2 GPGPU particle engine simulating fluid aerodynamic transport.
+- Interactive pointer and touch disturbance modeling atmospheric turbulence.
+- Coordinated light and dark themes with zero-flicker client-state synchronization.
 
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| ![AERIS Hero Light](docs/assets/homepage-hero-light.png) | ![AERIS Hero Dark](docs/assets/homepage-hero-dark.png) |
+### 2. Live Atmospheric Monitoring & Multi-Standard Normalization
+- Continuous atmospheric telemetry ingestion from Open-Meteo CAMS Global models.
+- Multi-index evaluation: Indian National AQI (CPCB), US-EPA AQI, and European EAQI.
+- Continuous 24-hour pollutant trends and hourly forecast horizons.
 
----
+### 3. Personalized Daily Action Plans
+- Deterministic lifestyle matrix ranking actions across commute, exercise, ventilation, and air filtration.
+- Plan B contingency recommendations for deteriorating air conditions.
+- Contextual AI explanations powered by Google Gemini, grounded strictly in official CPCB (2014) and WHO (2021) guidelines with bilingual English/Hindi support.
 
-### 2. Live Atmospheric Monitoring & Personalized Action Plan
+### 4. Indoor Air Hygiene Coach
+- Physical infiltration model evaluating indoor vs. outdoor particulate equilibrium.
+- HEPA purifier CADR sizing based on room volume, occupancy, and window sealing state.
+- Safe natural ventilation scheduling based on outdoor pollutant forecast windows.
 
-| Live Air Monitor Dashboard | Personalized Daily Action Plan (AI Drawer) |
-| :---: | :---: |
-| ![Live Air Monitor](docs/assets/air-monitor-dashboard.png) | ![Daily Action Plan](docs/assets/daily-action-plan.png) |
-| Multi-index comparison (Indian CPCB, US EPA, European EAQI) with 24h hourly forecast. | Deterministic priority ranking with Plan B fallbacks and bilingual Gemini explanations. |
-
----
-
-### 3. Indoor Hygiene & What-If Scenario Simulator
-
-| Indoor Air Hygiene Coach | What-If Scenario Simulator |
-| :---: | :---: |
-| ![Indoor Air Coach](docs/assets/indoor-air-coach.png) | ![What-If Scenarios](docs/assets/what-if-scenarios.png) |
-| Dynamic indoor/outdoor ratio, CADR purifier sizing, and window protocols. | Commute mode optimization, departure timing, and low-emission alternatives. |
-
----
-
-<details>
-<summary><strong>View Additional Interface Captures (Decision Receipts, Cloud Auth, Mobile)</strong></summary>
-
-### Cryptographic Decision Receipt & Cloud Sync
-
-| Deterministic Decision Receipt | Cloud Persistence & Auth Interface |
-| :---: | :---: |
-| ![Decision Receipt](docs/assets/decision-receipt.png) | ![Cloud Saving](docs/assets/cloud-saving-interface.png) |
-| Immutable SHA-256 fingerprint, rule ID, and verification seal. | Optional Supabase authentication with Row Level Security. |
-
-### Mobile Experience (390px Viewport)
-
-| Mobile Telemetry Monitor | Mobile Daily Plan & AI Assistant |
-| :---: | :---: |
-| ![Mobile Air Monitor](docs/assets/mobile-air-monitor.png) | ![Mobile Daily Plan](docs/assets/mobile-daily-plan.png) |
-
-</details>
-
----
-
-## The Problem & Our Approach
-
-Conventional air quality dashboards present retrospective concentration numbers ($\mu\text{g/m}^3$) that leave users guessing:
-- Should I open my windows before cooking, or will that draw in street smog?
-- Is an early-morning jog safe during an atmospheric inversion layer?
-- Which air purifier CADR rating is actually required for my room dimensions?
-
-AERIS resolves this with **three core engineering layers**:
-1. **Multi-Standard Normalization**: Ingests Open-Meteo CAMS atmospheric forecasts and computes simultaneous Indian CPCB, US-EPA, and European EAQI indices with 24-hour rolling averages.
-2. **Deterministic Decision Engine**: Evaluates rule-based lifestyle matrices (household sensitivity, exercise timing, commute type) with reproducible output IDs.
-3. **Contextual AI Assistance**: Leverages Google Gemini to explain *why* an action was recommended in plain English or Hindi, strictly constrained by deterministic evidence citations.
+### 5. What-If Scenario Simulator & Decision Receipts
+- Predictive simulation of commute alternatives, workout timing adjustments, and filtration interventions.
+- Cryptographic Decision Receipts featuring SHA-256 fingerprints, verification timestamps, and reproducible rule citations.
 
 ---
 
@@ -126,7 +91,7 @@ flowchart TD
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/AERIS.git
+   git clone https://github.com/Zyphron01/AERIS.git
    cd AERIS
    ```
 
@@ -139,7 +104,7 @@ flowchart TD
    ```bash
    cp .env.example .env.local
    ```
-   Edit `.env.local` with your credentials:
+   Configure `.env.local` with your credentials:
    - `GEMINI_API_KEY`: Required for AI explanations ([Get a key](https://aistudio.google.com/app/apikey)).
    - `NEXT_PUBLIC_SUPABASE_URL`: Optional for cloud persistence.
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: Optional for cloud persistence.
@@ -172,7 +137,7 @@ npm run typecheck
 # Code formatting and linting
 npm run lint
 
-# Vitest unit and component test suite (199 tests across 24 suites)
+# Vitest unit and component test suite (206 tests across 25 suites)
 npm test
 
 # Production build compilation
@@ -188,4 +153,4 @@ npm run test:e2e
 
 - **Guest-First Design**: All household profiles and preferences function completely in browser `localStorage`. No registration is required.
 - **Row Level Security**: Supabase tables (`saved_plans`, `decision_receipts`, `scenario_history`) strictly enforce user-level RLS policies. Unauthenticated or cross-tenant access is rejected at the database level.
-- **Secret Isolation**: Server-side credentials (Gemini API keys, service role keys) are never transmitted to client bundles.
+- **Secret Isolation**: Server-side credentials (Gemini API keys) are never transmitted to client bundles.
