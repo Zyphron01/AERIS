@@ -29,8 +29,8 @@ AERIS is an environmental decision-support platform that transforms modeled atmo
 - Safe natural ventilation scheduling based on outdoor pollutant forecast windows.
 
 ### 5. What-If Scenario Simulator & Decision Receipts
-- Predictive simulation of commute alternatives, workout timing adjustments, and filtration interventions.
-- Cryptographic Decision Receipts featuring SHA-256 fingerprints, verification timestamps, and reproducible rule citations.
+- Predictive simulation of commute modal shifts, workout timing adjustments, and filtration interventions.
+- Verifiable Decision Receipts featuring SHA-256 content checksums, verification timestamps, and reproducible rule citations.
 
 ---
 
@@ -121,7 +121,7 @@ flowchart TD
 
 - **Atmospheric Data**: Telemetry values are derived from Open-Meteo chemical transport models (CAMS Global). They represent continuous modeled estimates rather than certified stationary monitoring stations.
 - **Indian National AQI**: Calculated using official Central Pollution Control Board (CPCB) sub-index breakpoints with 24-hour rolling averages where available.
-- **Decision Receipts**: Scenario reduction metrics represent hypothetical differential models, not clinical exposure measurements.
+- **Decision Receipts**: Scenario reduction metrics represent hypothetical differential models, not clinical exposure measurements. Receipt SHA-256 hashes provide reproducible content checksums for verifying and comparing simulation assumptions and mitigation outputs against accidental modification; they do not constitute third-party cryptographic notarization or legal immutability proofs.
 - **Health Guidance**: AERIS provides non-clinical environmental decision support. It does not provide medical diagnoses or replace regulatory health advisories.
 
 ---

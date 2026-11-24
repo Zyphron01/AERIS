@@ -93,7 +93,7 @@ export function FeaturesSection(): React.JSX.Element {
           <FeatureCard
             icon={<Compass className="h-6 w-6" />}
             title="What-If Simulator"
-            description="Simulate the exposure impact of alternative commute corridors, departure times, and outdoor recreational locations."
+            description="Simulate the exposure impact of commute transit modal shifts, adjusted departure hours, and school routine exposure shielding."
             badge="Simulation"
             href="/scenarios"
           />
