@@ -201,7 +201,7 @@ export default function DailyPlanPage(): React.JSX.Element {
         planSavedSuccess={planSavedSuccess}
       />
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-6 py-8 focus:outline-none">
         {/* Stale Warning Banner */}
         {telemetry && (telemetry.freshness === "stale" || telemetry.freshness === "outdated") && (
           <StaleDataWarning lastUpdated={telemetry.timestamp} />

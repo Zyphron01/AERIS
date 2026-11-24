@@ -137,7 +137,7 @@ npm run typecheck
 # Code formatting and linting
 npm run lint
 
-# Vitest unit and component test suite (206 tests across 25 suites)
+# Vitest unit and component test suite (242 tests across 30 suites)
 npm test
 
 # Production build compilation
@@ -154,3 +154,5 @@ npm run test:e2e
 - **Guest-First Design**: All household profiles and preferences function completely in browser `localStorage`. No registration is required.
 - **Row Level Security**: Supabase tables (`saved_plans`, `decision_receipts`, `scenario_history`) strictly enforce user-level RLS policies. Unauthenticated or cross-tenant access is rejected at the database level.
 - **Secret Isolation**: Server-side credentials (Gemini API keys) are never transmitted to client bundles.
+- **HTTP Security Headers**: Strict HSTS, X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy, and restricted Permissions-Policy enforced across all production endpoints.
+- **Accessible Navigation & Error Boundaries**: WCAG 2.2 AA skip links, resilient client error boundary (`error.tsx`), and graceful 404 recovery (`not-found.tsx`).

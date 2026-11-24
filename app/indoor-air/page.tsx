@@ -189,7 +189,7 @@ export default function IndoorAirPage(): React.JSX.Element {
         onThemeToggle={toggleTheme}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 focus:outline-none">
         {/* Loading State */}
         {isLoading && (
           <div className="py-12">

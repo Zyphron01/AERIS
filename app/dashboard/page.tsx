@@ -112,7 +112,7 @@ export default function DashboardPage(): React.JSX.Element {
         onThemeToggle={toggleTheme}
       />
 
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-6 py-8 focus:outline-none">
         {isLoading && !telemetry ? (
           <TelemetryLoadingState message={`Retrieving live atmospheric model readings for ${selectedLocation.name}...`} />
         ) : error && !telemetry ? (

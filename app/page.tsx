@@ -13,7 +13,7 @@ export default function HomePage(): React.JSX.Element {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
-      <main>
+      <main id="main-content" tabIndex={-1} className="focus:outline-none">
         {/* Authoritative Liquid Sculpture Hero */}
         <LiquidSculptureHero
           theme={theme}

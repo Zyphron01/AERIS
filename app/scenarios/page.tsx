@@ -190,7 +190,7 @@ export default function ScenariosPage(): React.JSX.Element {
         onLocationChange={(newId) => setLocationId(newId)}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 focus:outline-none">
         {/* Loading State */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500">

@@ -128,8 +128,12 @@ test.describe("AERIS Landing Page & Hero Stabilization E2E Suite", () => {
     const activeTagName = await page.evaluate(() => document.activeElement?.tagName);
     expect(["A", "BUTTON", "BODY"]).toContain(activeTagName);
 
+    // Verify skip to main content link for keyboard users (WCAG 2.2 AA)
+    const skipLink = page.getByRole("link", { name: "Skip to main content" });
+    await expect(skipLink).toHaveAttribute("href", "#main-content");
+
     // Verify screen reader visually hidden text
-    const srOnly = page.locator(".sr-only");
+    const srOnly = page.locator(".sr-only").filter({ hasText: "AERIS — Intelligent Air Quality Companion" });
     await expect(srOnly).toContainText("AERIS — Intelligent Air Quality Companion");
 
     // Verify telemetry disclosures in footer
