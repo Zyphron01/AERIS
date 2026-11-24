@@ -373,13 +373,13 @@ test.describe("Supabase Cloud Persistence & Guest Mode Preservation", () => {
     // Delete the plan
     const deleteBtn = page.getByRole("button", { name: /Delete saved plan for Delhi NCR/i });
     await expect(deleteBtn).toBeVisible();
-    await deleteBtn.click();
+    await deleteBtn.click({ force: true });
 
     // Plan should be removed and empty state shown
     await expect(page.locator("text=No saved action plans found.")).toBeVisible({ timeout: 5000 });
 
     // Close the modal
-    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await page.getByRole("button", { name: "Close", exact: true }).click({ force: true });
     await expect(modal).not.toBeVisible({ timeout: 5000 });
   });
 

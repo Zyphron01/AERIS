@@ -68,20 +68,32 @@ test.describe("Theme Contrast Recovery & Token Isolation", () => {
     await expect(naqiCard).toBeVisible();
 
     const computed = await naqiCard.evaluate((el) => {
+      function toRgb(colorStr: string): string {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext("2d");
+        if (!ctx || !colorStr) return "rgb(255, 255, 255)";
+        ctx.fillStyle = colorStr;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        return `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+      }
+
       const cs = window.getComputedStyle(el);
       const heading = el.querySelector("h2");
       const hCs = heading ? window.getComputedStyle(heading) : null;
-      const firstPanel = el.querySelector(".rounded-2xl");
+      const firstPanel = el.querySelector(".grid.sm\\:grid-cols-3 .rounded-2xl") || el.querySelector(".rounded-2xl");
       const pCs = firstPanel ? window.getComputedStyle(firstPanel) : null;
       const pTitle = firstPanel?.querySelector("div:first-child");
       const ptCs = pTitle ? window.getComputedStyle(pTitle) : null;
 
       return {
-        cardBg: cs.backgroundColor,
-        cardBorder: cs.borderColor,
-        headingColor: hCs?.color || "",
-        panelBg: pCs?.backgroundColor || "",
-        panelTitleColor: ptCs?.color || "",
+        cardBg: toRgb(cs.backgroundColor),
+        cardBorder: toRgb(cs.borderColor),
+        headingColor: toRgb(hCs?.color || ""),
+        panelBg: toRgb(pCs?.backgroundColor || ""),
+        panelTitleColor: toRgb(ptCs?.color || ""),
       };
     });
 
@@ -123,12 +135,24 @@ test.describe("Theme Contrast Recovery & Token Isolation", () => {
     // Verify card background is now dark slate
     const naqiCard = page.locator(".grid.lg\\:grid-cols-3 > div").first();
     const darkComputed = await naqiCard.evaluate((el) => {
+      function toRgb(colorStr: string): string {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext("2d");
+        if (!ctx || !colorStr) return "rgb(255, 255, 255)";
+        ctx.fillStyle = colorStr;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        return `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+      }
+
       const cs = window.getComputedStyle(el);
       const heading = el.querySelector("h2");
       const hCs = heading ? window.getComputedStyle(heading) : null;
       return {
-        cardBg: cs.backgroundColor,
-        headingColor: hCs?.color || "",
+        cardBg: toRgb(cs.backgroundColor),
+        headingColor: toRgb(hCs?.color || ""),
       };
     });
 
@@ -148,7 +172,7 @@ test.describe("Theme Contrast Recovery & Token Isolation", () => {
     });
 
     // Reload page to verify persistence
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForTimeout(300);
     const reloadedHtmlClasses = await page.locator("html").getAttribute("class");
     expect(reloadedHtmlClasses).toContain("dark");

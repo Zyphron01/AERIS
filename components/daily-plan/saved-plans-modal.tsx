@@ -86,7 +86,7 @@ export function SavedPlansModal({
     >
       <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 px-6 py-4 dark:border-slate-800">
+        <div className="shrink-0 flex items-center justify-between border-b border-slate-200/80 px-6 py-4 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-cyan-300">
               <Sparkles className="h-4 w-4" />
@@ -182,7 +182,7 @@ export function SavedPlansModal({
                     onClick={() => handleDelete(plan.id)}
                     disabled={deletingId === plan.id}
                     aria-label={`Delete saved plan for ${plan.location_name}`}
-                    className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 shadow-2xs transition hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:bg-slate-800 dark:text-rose-400"
+                    className="relative z-10 inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-rose-700 shadow-2xs transition hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:bg-slate-800 dark:text-rose-400"
                   >
                     <Trash2 className="h-3 w-3" />
                     <span>{deletingId === plan.id ? "Deleting..." : "Delete"}</span>

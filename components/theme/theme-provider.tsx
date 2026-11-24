@@ -41,9 +41,6 @@ function getThemeSnapshot(): ThemeMode {
     if (stored === "dark" || stored === "light") {
       return stored;
     }
-    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      return "dark";
-    }
   } catch {
     // storage unavailable
   }
