@@ -10,7 +10,7 @@ export function HowItWorksSection(): React.JSX.Element {
     {
       num: "02",
       title: "Forecast & Predict",
-      desc: "Our predictive modeling evaluates wind vectors, thermal inversions, and particulate dispersion to project air quality trajectories 24 hours ahead.",
+      desc: "AERIS ingests Open-Meteo atmospheric chemical transport model forecasts—tracking wind speeds and particulate trends—to project 24-hour regional air quality trajectories through our deterministic decision engine.",
     },
     {
       num: "03",
