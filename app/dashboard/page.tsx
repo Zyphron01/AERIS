@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { DEFAULT_LOCATION } from "@/lib/telemetry/locations";
-import type { LocationMetadata, NormalizedTelemetry } from "@/lib/telemetry/types";
+import { useTelemetry } from "@/lib/telemetry/use-telemetry";
+import type { LocationMetadata } from "@/lib/telemetry/types";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { AqiOverviewCard } from "@/components/dashboard/aqi-overview-card";
 import { PollutantGrid } from "@/components/dashboard/pollutant-grid";
@@ -18,85 +19,15 @@ import {
 
 export default function DashboardPage(): React.JSX.Element {
   const [selectedLocation, setSelectedLocation] = useState<LocationMetadata>(DEFAULT_LOCATION);
-  const [telemetry, setTelemetry] = useState<NormalizedTelemetry | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<{ message: string; details?: string } | null>(null);
+  const { telemetry, isLoading, isRefreshing, error, refetch } = useTelemetry(selectedLocation.id);
   const { theme, toggleTheme } = useTheme();
 
-  // Fetch telemetry when location changes
-  useEffect(() => {
-    let canceled = false;
-
-    async function fetchTelemetry() {
-      try {
-        const res = await fetch(
-          `/api/telemetry?locationId=${encodeURIComponent(selectedLocation.id)}`
-        );
-        if (!res.ok) {
-          const errorJson = await res.json().catch(() => ({}));
-          throw new Error(
-            errorJson.error || `HTTP ${res.status}: Failed to retrieve telemetry`
-          );
-        }
-
-        const data: NormalizedTelemetry = await res.json();
-        if (!canceled) {
-          setTelemetry(data);
-          setError(null);
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
-      } catch (err: unknown) {
-        if (!canceled) {
-          const msg =
-            err instanceof Error
-              ? err.message
-              : "Network error connecting to telemetry service";
-          setError({ message: msg });
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
-      }
-    }
-
-    fetchTelemetry();
-
-    return () => {
-      canceled = true;
-    };
-  }, [selectedLocation]);
-
   const handleLocationChange = (nextLocation: LocationMetadata): void => {
-    setIsLoading(true);
-    setError(null);
     setSelectedLocation(nextLocation);
   };
 
   const handleRefresh = async (): Promise<void> => {
-    setIsRefreshing(true);
-    try {
-      const res = await fetch(
-        `/api/telemetry?locationId=${encodeURIComponent(selectedLocation.id)}`
-      );
-      if (!res.ok) {
-        const errorJson = await res.json().catch(() => ({}));
-        throw new Error(
-          errorJson.error || `HTTP ${res.status}: Failed to retrieve telemetry`
-        );
-      }
-      const data: NormalizedTelemetry = await res.json();
-      setTelemetry(data);
-      setError(null);
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Network error connecting to telemetry service";
-      setError({ message: msg });
-    } finally {
-      setIsRefreshing(false);
-    }
+    await refetch();
   };
 
   return (
@@ -117,8 +48,7 @@ export default function DashboardPage(): React.JSX.Element {
           <TelemetryLoadingState message={`Retrieving live atmospheric model readings for ${selectedLocation.name}...`} />
         ) : error && !telemetry ? (
           <TelemetryErrorState
-            errorMessage={error.message}
-            errorDetails={error.details}
+            errorMessage={error}
             onRetry={handleRefresh}
           />
         ) : telemetry ? (

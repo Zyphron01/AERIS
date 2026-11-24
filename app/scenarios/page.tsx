@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { NormalizedTelemetry } from "@/lib/telemetry/types";
+import { useTelemetry } from "@/lib/telemetry/use-telemetry";
 import type { HouseholdProfile } from "@/lib/decision-engine/types";
 import { getStoredHouseholdProfile } from "@/lib/decision-engine/household-profile";
 import type { ScenarioType, ScenarioComparisonResult } from "@/lib/scenarios/types";
@@ -29,10 +29,8 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 
 export default function ScenariosPage(): React.JSX.Element {
   const [locationId, setLocationId] = React.useState<string>("delhi-ncr");
-  const [telemetry, setTelemetry] = React.useState<NormalizedTelemetry | null>(null);
+  const { telemetry, isLoading, error, refetch } = useTelemetry(locationId);
   const [profile] = React.useState<HouseholdProfile | null>(() => getStoredHouseholdProfile());
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
-  const [error, setError] = React.useState<string | null>(null);
 
   // Active scenario type
   const [activeScenarioType, setActiveScenarioType] =
@@ -67,94 +65,42 @@ export default function ScenariosPage(): React.JSX.Element {
     fanSpeedMode: "maximum_certified",
   });
 
-  // Fetch telemetry
-  const fetchTelemetry = React.useCallback(async (locId: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/telemetry?location=${locId}`);
-      if (!res.ok) {
-        throw new Error(`Telemetry request failed with status: ${res.status}`);
-      }
-      const data: NormalizedTelemetry = await res.json();
-      setTelemetry(data);
-
-      // Initialize default hours from forecast
-      const forecast = data.hourlyForecast ?? [];
-      const firstHour = forecast[0]?.time ?? new Date().toISOString();
-      const fourthHour = forecast[Math.min(4, forecast.length - 1)]?.time ?? firstHour;
-
-      setOutdoorTimingInput((prev) => ({
-        ...prev,
-        baselineHourIso: prev.baselineHourIso || firstHour,
-        alternativeHourIso: prev.alternativeHourIso || fourthHour,
-      }));
-
-      setIndoorVsOutdoorInput((prev) => ({
-        ...prev,
-        forecastHourIso: prev.forecastHourIso || firstHour,
-      }));
-
-      setCommuteModeInput((prev) => ({
-        ...prev,
-        forecastHourIso: prev.forecastHourIso || firstHour,
-      }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load atmospheric forecast data.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    let canceled = false;
-
-    async function loadInitial() {
-      try {
-        const res = await fetch(`/api/telemetry?location=${locationId}`);
-        if (!res.ok) {
-          throw new Error(`Telemetry request failed with status: ${res.status}`);
-        }
-        const data: NormalizedTelemetry = await res.json();
-        if (!canceled) {
-          setTelemetry(data);
-          setError(null);
-          setIsLoading(false);
-
-          const forecast = data.hourlyForecast ?? [];
-          const firstHour = forecast[0]?.time ?? new Date().toISOString();
-          const fourthHour = forecast[Math.min(4, forecast.length - 1)]?.time ?? firstHour;
-
-          setOutdoorTimingInput((prev) => ({
-            ...prev,
-            baselineHourIso: prev.baselineHourIso || firstHour,
-            alternativeHourIso: prev.alternativeHourIso || fourthHour,
-          }));
-
-          setIndoorVsOutdoorInput((prev) => ({
-            ...prev,
-            forecastHourIso: prev.forecastHourIso || firstHour,
-          }));
-
-          setCommuteModeInput((prev) => ({
-            ...prev,
-            forecastHourIso: prev.forecastHourIso || firstHour,
-          }));
-        }
-      } catch (err) {
-        if (!canceled) {
-          setError(err instanceof Error ? err.message : "Failed to load atmospheric forecast data.");
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadInitial();
-
-    return () => {
-      canceled = true;
+  // Derive effective scenario inputs against active telemetry forecast without cascading effect state
+  const resolvedOutdoorTimingInput = React.useMemo<OutdoorTimingInput>(() => {
+    if (!telemetry) return outdoorTimingInput;
+    const forecast = telemetry.hourlyForecast ?? [];
+    const firstHour = forecast[0]?.time ?? "";
+    const fourthHour = forecast[Math.min(4, forecast.length - 1)]?.time ?? firstHour;
+    const hasBaseline = forecast.some((p) => p.time === outdoorTimingInput.baselineHourIso);
+    const hasAlt = forecast.some((p) => p.time === outdoorTimingInput.alternativeHourIso);
+    return {
+      ...outdoorTimingInput,
+      baselineHourIso: hasBaseline ? outdoorTimingInput.baselineHourIso : firstHour,
+      alternativeHourIso: hasAlt ? outdoorTimingInput.alternativeHourIso : fourthHour,
     };
-  }, [locationId]);
+  }, [telemetry, outdoorTimingInput]);
+
+  const resolvedIndoorVsOutdoorInput = React.useMemo<IndoorVsOutdoorInput>(() => {
+    if (!telemetry) return indoorVsOutdoorInput;
+    const forecast = telemetry.hourlyForecast ?? [];
+    const firstHour = forecast[0]?.time ?? "";
+    const hasHour = forecast.some((p) => p.time === indoorVsOutdoorInput.forecastHourIso);
+    return {
+      ...indoorVsOutdoorInput,
+      forecastHourIso: hasHour ? indoorVsOutdoorInput.forecastHourIso : firstHour,
+    };
+  }, [telemetry, indoorVsOutdoorInput]);
+
+  const resolvedCommuteModeInput = React.useMemo<CommuteModeInput>(() => {
+    if (!telemetry) return commuteModeInput;
+    const forecast = telemetry.hourlyForecast ?? [];
+    const firstHour = forecast[0]?.time ?? "";
+    const hasHour = forecast.some((p) => p.time === commuteModeInput.forecastHourIso);
+    return {
+      ...commuteModeInput,
+      forecastHourIso: hasHour ? commuteModeInput.forecastHourIso : firstHour,
+    };
+  }, [telemetry, commuteModeInput]);
 
   // Compute comparison result dynamically
   const comparisonResult: ScenarioComparisonResult | null = React.useMemo(() => {
@@ -162,11 +108,11 @@ export default function ScenariosPage(): React.JSX.Element {
 
     switch (activeScenarioType) {
       case "outdoor_timing":
-        return compareOutdoorTiming(telemetry, outdoorTimingInput, profile);
+        return compareOutdoorTiming(telemetry, resolvedOutdoorTimingInput, profile);
       case "indoor_vs_outdoor":
-        return compareIndoorVsOutdoor(telemetry, indoorVsOutdoorInput, profile);
+        return compareIndoorVsOutdoor(telemetry, resolvedIndoorVsOutdoorInput, profile);
       case "commute_mode":
-        return compareCommuteMode(telemetry, commuteModeInput, profile);
+        return compareCommuteMode(telemetry, resolvedCommuteModeInput, profile);
       case "filtration_hypothetical":
         return compareFiltrationHypothetical(telemetry, filtrationInput);
       default:
@@ -175,9 +121,9 @@ export default function ScenariosPage(): React.JSX.Element {
   }, [
     telemetry,
     activeScenarioType,
-    outdoorTimingInput,
-    indoorVsOutdoorInput,
-    commuteModeInput,
+    resolvedOutdoorTimingInput,
+    resolvedIndoorVsOutdoorInput,
+    resolvedCommuteModeInput,
     filtrationInput,
     profile,
   ]);
@@ -211,7 +157,7 @@ export default function ScenariosPage(): React.JSX.Element {
             <p className="mt-2 text-xs leading-relaxed">{error}</p>
             <button
               type="button"
-              onClick={() => fetchTelemetry(locationId)}
+              onClick={() => void refetch()}
               className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-rose-700"
             >
               Retry Connection
@@ -232,7 +178,7 @@ export default function ScenariosPage(): React.JSX.Element {
             {activeScenarioType === "outdoor_timing" && (
               <OutdoorTimingPanel
                 telemetry={telemetry}
-                value={outdoorTimingInput}
+                value={resolvedOutdoorTimingInput}
                 onChange={(next) => setOutdoorTimingInput(next)}
               />
             )}
@@ -240,7 +186,7 @@ export default function ScenariosPage(): React.JSX.Element {
             {activeScenarioType === "indoor_vs_outdoor" && (
               <IndoorVsOutdoorPanel
                 telemetry={telemetry}
-                value={indoorVsOutdoorInput}
+                value={resolvedIndoorVsOutdoorInput}
                 onChange={(next) => setIndoorVsOutdoorInput(next)}
               />
             )}
@@ -248,7 +194,7 @@ export default function ScenariosPage(): React.JSX.Element {
             {activeScenarioType === "commute_mode" && (
               <CommuteModePanel
                 telemetry={telemetry}
-                value={commuteModeInput}
+                value={resolvedCommuteModeInput}
                 onChange={(next) => setCommuteModeInput(next)}
               />
             )}

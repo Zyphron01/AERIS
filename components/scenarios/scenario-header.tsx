@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Sun, Moon, MapPin } from "lucide-react";
 import type { NormalizedTelemetry } from "@/lib/telemetry/types";
+import { SUPPORTED_LOCATIONS } from "@/lib/telemetry/locations";
 import { useTheme } from "@/components/theme/theme-provider";
 
 interface ScenarioHeaderProps {
@@ -11,15 +12,6 @@ interface ScenarioHeaderProps {
   readonly activeLocationId: string;
   readonly onLocationChange: (id: string) => void;
 }
-
-const DEMO_CITIES = [
-  { id: "delhi-ncr", name: "Delhi NCR" },
-  { id: "mumbai", name: "Mumbai" },
-  { id: "bengaluru", name: "Bengaluru" },
-  { id: "kolkata", name: "Kolkata" },
-  { id: "london", name: "London" },
-  { id: "new-york", name: "New York" },
-] as const;
 
 export function ScenarioHeader({
   telemetry,
@@ -71,7 +63,7 @@ export function ScenarioHeader({
               onChange={(e) => onLocationChange(e.target.value)}
               className="bg-transparent font-medium text-slate-700 focus:outline-hidden dark:text-slate-200"
             >
-              {DEMO_CITIES.map((city) => (
+              {SUPPORTED_LOCATIONS.map((city) => (
                 <option key={city.id} value={city.id} className="dark:bg-slate-800">
                   {city.name}
                 </option>

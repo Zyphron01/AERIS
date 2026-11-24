@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore, useMemo } from "react";
+import React, { useState, useCallback, useSyncExternalStore, useMemo } from "react";
 import { IndoorAirHeader } from "@/components/indoor-air/indoor-air-header";
 import { OutdoorVsIndoorCard } from "@/components/indoor-air/outdoor-vs-indoor-card";
 import { IndoorConditionsPanel } from "@/components/indoor-air/indoor-conditions-panel";
@@ -13,7 +13,8 @@ import {
   StaleDataWarning,
 } from "@/components/dashboard/telemetry-state-views";
 import { DEFAULT_LOCATION } from "@/lib/telemetry/locations";
-import type { LocationMetadata, NormalizedTelemetry } from "@/lib/telemetry/types";
+import { useTelemetry } from "@/lib/telemetry/use-telemetry";
+import type { LocationMetadata } from "@/lib/telemetry/types";
 import {
   subscribeToHouseholdProfile,
   getHouseholdProfileSnapshot,
@@ -33,9 +34,7 @@ import { useTheme } from "@/components/theme/theme-provider";
 
 export default function IndoorAirPage(): React.JSX.Element {
   const [selectedLocation, setSelectedLocation] = useState<LocationMetadata>(DEFAULT_LOCATION);
-  const [telemetry, setTelemetry] = useState<NormalizedTelemetry | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { telemetry, isLoading, error, refetch } = useTelemetry(selectedLocation.id);
   const { theme, toggleTheme } = useTheme();
 
   // Read household profile from synced store
@@ -94,62 +93,9 @@ export default function IndoorAirPage(): React.JSX.Element {
     currency: "INR",
   });
 
-  // Telemetry fetcher
-  const loadTelemetry = useCallback(async (location: LocationMetadata) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/telemetry?locationId=${location.id}`);
-      if (!res.ok) {
-        throw new Error(`Telemetry service returned status ${res.status}`);
-      }
-      const data: NormalizedTelemetry = await res.json();
-      setTelemetry(data);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to load live air quality telemetry";
-      setError(msg);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLocationChange = useCallback((loc: LocationMetadata) => {
+    setSelectedLocation(loc);
   }, []);
-
-  useEffect(() => {
-    let canceled = false;
-
-    async function fetchInitial() {
-      try {
-        const res = await fetch(`/api/telemetry?locationId=${selectedLocation.id}`);
-        if (!res.ok) {
-          throw new Error(`Telemetry service returned status ${res.status}`);
-        }
-        const data: NormalizedTelemetry = await res.json();
-        if (!canceled) {
-          setTelemetry(data);
-          setError(null);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        if (!canceled) {
-          const msg = err instanceof Error ? err.message : "Failed to load live air quality telemetry";
-          setError(msg);
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void fetchInitial();
-    return () => {
-      canceled = true;
-    };
-  }, [selectedLocation.id]);
-
-  const handleLocationChange = useCallback(
-    (loc: LocationMetadata) => {
-      setSelectedLocation(loc);
-      void loadTelemetry(loc);
-    },
-    [loadTelemetry]
-  );
 
   const outdoorPm25 = useMemo(() => {
     if (!telemetry) return null;
@@ -203,7 +149,7 @@ export default function IndoorAirPage(): React.JSX.Element {
             <TelemetryErrorState
               errorMessage={error}
               onRetry={() => {
-                void loadTelemetry(selectedLocation);
+                void refetch();
               }}
             />
           </div>

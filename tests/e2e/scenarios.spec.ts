@@ -45,13 +45,37 @@ const MOCK_TELEMETRY = {
   disclaimer: "Modeled CPCB AQI Estimate.",
 };
 
+const MOCK_MUMBAI_TELEMETRY = {
+  ...MOCK_TELEMETRY,
+  location: {
+    id: "mumbai",
+    name: "Mumbai",
+    region: "Maharashtra",
+    country: "India",
+    latitude: 19.076,
+    longitude: 72.8777,
+    timezone: "Asia/Kolkata",
+    modelDomain: "CAMS Global",
+  },
+  pollutants: [
+    { code: "pm2_5", name: "PM2.5", unit: "µg/m³", value: 42.0, averagingPeriod: "1-hour instantaneous", status: "available" },
+  ],
+  hourlyForecast: [
+    { time: "2026-11-22T06:00:00Z", pm2_5: 55, pm10: 95, usAqi: 145, temperatureC: 27, humidityPercent: 72, windSpeedKmH: 11 },
+    { time: "2026-11-22T13:00:00Z", pm2_5: 32, pm10: 68, usAqi: 93, temperatureC: 31, humidityPercent: 58, windSpeedKmH: 15 },
+  ],
+};
+
 test.describe("What-If Scenario Simulator Page (/scenarios)", () => {
   test.beforeEach(async ({ page }) => {
     await page.route("**/api/telemetry*", async (route) => {
+      const url = new URL(route.request().url());
+      const locationId = url.searchParams.get("locationId");
+      const payload = locationId === "mumbai" ? MOCK_MUMBAI_TELEMETRY : MOCK_TELEMETRY;
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(MOCK_TELEMETRY),
+        body: JSON.stringify(payload),
       });
     });
   });
@@ -127,6 +151,25 @@ test.describe("What-If Scenario Simulator Page (/scenarios)", () => {
 
     // Check confirmation text
     await expect(page.getByText("Copied to Clipboard")).toBeVisible();
+  });
+
+  test("selects Mumbai, requests locationId=mumbai, and renders Mumbai telemetry in receipt", async ({ page }) => {
+    await page.goto("/scenarios");
+    await expect(page.getByRole("button", { name: /Copy decision receipt text/i })).toBeVisible();
+    await expect(page.getByText("140 µg/m³", { exact: true })).toBeVisible();
+
+    const mumbaiRequestPromise = page.waitForRequest((req) => {
+      if (!req.url().includes("/api/telemetry")) return false;
+      const url = new URL(req.url());
+      return url.searchParams.get("locationId") === "mumbai";
+    });
+
+    await page.getByLabel("Select City for Scenario Simulation").selectOption("mumbai");
+    const mumbaiReq = await mumbaiRequestPromise;
+    expect(new URL(mumbaiReq.url()).searchParams.get("locationId")).toBe("mumbai");
+
+    await expect(page.getByText("55 µg/m³", { exact: true })).toBeVisible();
+    await expect(page.getByText("140 µg/m³", { exact: true })).toHaveCount(0);
   });
 
   test("supports dark mode toggle smoothly", async ({ page }) => {

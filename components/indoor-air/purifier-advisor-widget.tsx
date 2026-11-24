@@ -8,7 +8,7 @@ import type {
   DimensionUnit,
   CurrencyUnit,
 } from "@/lib/indoor-air/types";
-import { computePurifierAdvisor } from "@/lib/indoor-air/calculations";
+import { computePurifierAdvisor, FEET_PER_METER } from "@/lib/indoor-air/calculations";
 import { Calculator, CheckCircle2, AlertTriangle, ShieldCheck, DollarSign, Info } from "lucide-react";
 
 interface PurifierAdvisorWidgetProps {
@@ -40,13 +40,13 @@ export function PurifierAdvisorWidget({
   const handleUnitToggle = (newUnit: DimensionUnit) => {
     if (newUnit === unit) return;
     if (newUnit === "feet") {
-      setLength(Math.round(length * 3.28084 * 10) / 10);
-      setWidth(Math.round(width * 3.28084 * 10) / 10);
-      setHeight(Math.round(height * 3.28084 * 10) / 10);
+      setLength(Math.round(length * FEET_PER_METER * 10) / 10);
+      setWidth(Math.round(width * FEET_PER_METER * 10) / 10);
+      setHeight(Math.round(height * FEET_PER_METER * 10) / 10);
     } else {
-      setLength(Math.round((length / 3.28084) * 100) / 100);
-      setWidth(Math.round((width / 3.28084) * 100) / 100);
-      setHeight(Math.round((height / 3.28084) * 100) / 100);
+      setLength(Math.round((length / FEET_PER_METER) * 100) / 100);
+      setWidth(Math.round((width / FEET_PER_METER) * 100) / 100);
+      setHeight(Math.round((height / FEET_PER_METER) * 100) / 100);
     }
     setUnit(newUnit);
   };

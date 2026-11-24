@@ -5,6 +5,7 @@
  */
 
 import type { NormalizedTelemetry, HourlyForecastPoint } from "@/lib/telemetry/types";
+import { getUsAqiCategory } from "@/lib/telemetry/normalizer";
 import type { HouseholdProfile } from "@/lib/decision-engine/types";
 import type {
   ScenarioComparisonResult,
@@ -42,16 +43,11 @@ export function findForecastPointByTime(
 }
 
 /**
- * Maps US EPA AQI index value to its qualitative category.
+ * Maps US EPA AQI index value to its qualitative category using the canonical normalizer helper.
  */
 function getAqiCategory(aqiValue: number | null): string {
   if (aqiValue === null) return "Unavailable";
-  if (aqiValue <= 50) return "Good";
-  if (aqiValue <= 100) return "Moderate";
-  if (aqiValue <= 150) return "Unhealthy for Sensitive Groups";
-  if (aqiValue <= 200) return "Unhealthy";
-  if (aqiValue <= 300) return "Very Unhealthy";
-  return "Hazardous";
+  return getUsAqiCategory(aqiValue).category;
 }
 
 /**

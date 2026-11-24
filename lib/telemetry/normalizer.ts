@@ -57,7 +57,7 @@ function decodeWmoWeatherCode(code?: number): string {
   }
 }
 
-function getUsAqiCategory(aqi: number): { category: string; colorClass: string } {
+export function getUsAqiCategory(aqi: number): { category: string; colorClass: string } {
   if (aqi <= 50) {
     return {
       category: "Good",

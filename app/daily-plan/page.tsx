@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore, useMemo } from "react";
+import React, { useState, useSyncExternalStore, useMemo } from "react";
 import { DailyPlanHeader } from "@/components/daily-plan/daily-plan-header";
 import { OnboardingWizard } from "@/components/daily-plan/onboarding-wizard";
 import { ProfileSummaryBar } from "@/components/daily-plan/profile-summary-bar";
@@ -12,7 +12,8 @@ import {
   StaleDataWarning,
 } from "@/components/dashboard/telemetry-state-views";
 import { DEFAULT_LOCATION } from "@/lib/telemetry/locations";
-import type { LocationMetadata, NormalizedTelemetry } from "@/lib/telemetry/types";
+import { useTelemetry } from "@/lib/telemetry/use-telemetry";
+import type { LocationMetadata } from "@/lib/telemetry/types";
 import type { HouseholdProfile, DailyPlanResult } from "@/lib/decision-engine/types";
 import {
   saveHouseholdProfile,
@@ -35,9 +36,7 @@ import { useTheme } from "@/components/theme/theme-provider";
 
 export default function DailyPlanPage(): React.JSX.Element {
   const [selectedLocation, setSelectedLocation] = useState<LocationMetadata>(DEFAULT_LOCATION);
-  const [telemetry, setTelemetry] = useState<NormalizedTelemetry | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { telemetry, isLoading, error, refetch } = useTelemetry(selectedLocation.id);
   const { theme, toggleTheme } = useTheme();
 
   // Cloud Persistence & Auth State
@@ -61,58 +60,6 @@ export default function DailyPlanPage(): React.JSX.Element {
   const [isWizardOpen, setIsWizardOpen] = useState<boolean>(false);
   const [aiDrawerAction, setAiDrawerAction] = useState<RecommendationAction | null>(null);
   const [isAiDrawerOpen, setIsAiDrawerOpen] = useState<boolean>(false);
-
-  // Fetch telemetry for selected location
-  const loadTelemetry = useCallback(async (location: LocationMetadata) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/telemetry?locationId=${location.id}`);
-      if (!res.ok) {
-        const errorJson = await res.json().catch(() => null);
-        throw new Error(errorJson?.error || `Environmental telemetry endpoint returned status ${res.status}`);
-      }
-      const data: NormalizedTelemetry = await res.json();
-      setTelemetry(data);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to load live air quality telemetry";
-      setError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let canceled = false;
-
-    async function fetchInitial() {
-      try {
-        const res = await fetch(`/api/telemetry?locationId=${selectedLocation.id}`);
-        if (!res.ok) {
-          const errorJson = await res.json().catch(() => null);
-          throw new Error(errorJson?.error || `Environmental telemetry endpoint returned status ${res.status}`);
-        }
-        const data: NormalizedTelemetry = await res.json();
-        if (!canceled) {
-          setTelemetry(data);
-          setError(null);
-          setIsLoading(false);
-        }
-      } catch (err) {
-        if (!canceled) {
-          const msg = err instanceof Error ? err.message : "Failed to load live air quality telemetry";
-          setError(msg);
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchInitial();
-
-    return () => {
-      canceled = true;
-    };
-  }, [selectedLocation]);
 
   // Profile Save Handler
   const handleSaveProfile = (newProfile: HouseholdProfile) => {
@@ -214,7 +161,9 @@ export default function DailyPlanPage(): React.JSX.Element {
         {!isLoading && error && (
           <TelemetryErrorState
             errorMessage={error}
-            onRetry={() => loadTelemetry(selectedLocation)}
+            onRetry={() => {
+              void refetch();
+            }}
           />
         )}
 

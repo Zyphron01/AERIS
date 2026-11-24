@@ -38,6 +38,8 @@ export function AiExplanationDrawer({
 
   const drawerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const activeAbortRef = useRef<AbortController | null>(null);
+  const explainSeqRef = useRef<number>(0);
 
   // Keyboard accessibility: Escape closes drawer
   useEffect(() => {
@@ -57,52 +59,20 @@ export function AiExplanationDrawer({
     }
   }, [isOpen]);
 
-  // Fetch explanation when action or language changes
-  const loadExplanation = useCallback(async () => {
-    if (!action) return;
-
-    setIsLoading(true);
-    setError(null);
-    setChatResponse(null);
-
-    try {
-      const res = await fetch("/api/assistant/explain", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          actionId: action.id,
-          locationId,
-          profile,
-          language,
-        }),
-      });
-
-      if (!res.ok) {
-        const errorJson = await res.json().catch(() => ({}));
-        throw new Error(errorJson.error || `HTTP ${res.status}: Failed to generate explanation.`);
-      }
-
-      const data: ExplanationResponse = await res.json();
-      setExplanationData(data);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error connecting to explanation service.";
-      setError(msg);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [action, locationId, profile, language]);
-
-  useEffect(() => {
-    let canceled = false;
-    if (!isOpen || !action) return;
-
-    async function fetchInitial() {
+  // Unified explanation fetcher with AbortController & sequence protection
+  const performExplanationFetch = useCallback(
+    async (
+      targetAction: RecommendationAction,
+      signal: AbortSignal,
+      seq: number
+    ) => {
       try {
         const res = await fetch("/api/assistant/explain", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal,
           body: JSON.stringify({
-            actionId: action?.id,
+            actionId: targetAction.id,
             locationId,
             profile,
             language,
@@ -115,26 +85,62 @@ export function AiExplanationDrawer({
         }
 
         const data: ExplanationResponse = await res.json();
-        if (!canceled) {
-          setExplanationData(data);
-          setError(null);
-          setIsLoading(false);
+        if (signal.aborted || seq !== explainSeqRef.current) {
+          return;
         }
+
+        setExplanationData(data);
+        setError(null);
+        setIsLoading(false);
       } catch (err: unknown) {
-        if (!canceled) {
-          const msg = err instanceof Error ? err.message : "Error connecting to explanation service.";
-          setError(msg);
-          setIsLoading(false);
+        if (
+          (err instanceof DOMException && err.name === "AbortError") ||
+          signal.aborted ||
+          seq !== explainSeqRef.current
+        ) {
+          return;
         }
+
+        const msg = err instanceof Error ? err.message : "Error connecting to explanation service.";
+        setError(msg);
+        setIsLoading(false);
       }
+    },
+    [locationId, profile, language]
+  );
+
+  const loadExplanation = useCallback(async () => {
+    if (!action) return;
+
+    activeAbortRef.current?.abort();
+    const controller = new AbortController();
+    activeAbortRef.current = controller;
+    const seq = ++explainSeqRef.current;
+
+    setIsLoading(true);
+    setError(null);
+    setChatResponse(null);
+
+    await performExplanationFetch(action, controller.signal, seq);
+  }, [action, performExplanationFetch]);
+
+  useEffect(() => {
+    if (!isOpen || !action) {
+      activeAbortRef.current?.abort();
+      return;
     }
 
-    fetchInitial();
+    activeAbortRef.current?.abort();
+    const controller = new AbortController();
+    activeAbortRef.current = controller;
+    const seq = ++explainSeqRef.current;
+
+    void performExplanationFetch(action, controller.signal, seq);
 
     return () => {
-      canceled = true;
+      controller.abort();
     };
-  }, [isOpen, action, locationId, profile, language]);
+  }, [isOpen, action, performExplanationFetch]);
 
   const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
