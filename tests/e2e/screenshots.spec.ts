@@ -1,7 +1,20 @@
 import { test, expect, type Page } from "@playwright/test";
 import path from "path";
+import fs from "fs";
 
-const ARTIFACTS_DIR = "C:\\Users\\kiran\\.gemini\\antigravity\\brain\\066f83fe-0496-4794-9a02-51b5f232f479";
+const ARTIFACTS_DIR =
+  process.env.ARTIFACTS_DIR ||
+  (process.platform === "win32" && fs.existsSync("C:\\Users\\kiran\\.gemini\\antigravity\\brain\\066f83fe-0496-4794-9a02-51b5f232f479")
+    ? "C:\\Users\\kiran\\.gemini\\antigravity\\brain\\066f83fe-0496-4794-9a02-51b5f232f479"
+    : path.join(process.cwd(), "test-results", "artifacts"));
+
+if (!fs.existsSync(ARTIFACTS_DIR)) {
+  try {
+    fs.mkdirSync(ARTIFACTS_DIR, { recursive: true });
+  } catch {
+    // fallback or ignore if exists
+  }
+}
 
 const MOCK_PROFILE = {
   id: "demo-profile-delhi",

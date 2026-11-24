@@ -10,16 +10,17 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: "list",
+  reporter: process.env.CI ? [["github"], ["list"]] : "list",
   use: {
     baseURL: "http://127.0.0.1:3000",
     trace: "on-first-retry",
     launchOptions: {
       args: [
-        "--use-gl=angle",
-        "--use-angle=d3d11",
         "--ignore-gpu-blocklist",
         "--enable-gpu-rasterization",
+        ...(process.platform === "win32"
+          ? ["--use-gl=angle", "--use-angle=d3d11"]
+          : []),
       ],
     },
   },
