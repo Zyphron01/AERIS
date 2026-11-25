@@ -81,7 +81,7 @@ export interface ChatResponse {
 
 /** Service resilience limits */
 export const GEMINI_CONFIG = {
-  MODEL_NAME: "gemini-2.5-flash",
+  MODEL_NAME: "gemini-3.5-flash-lite",
   TOTAL_DEADLINE_MS: 8000,
   MAX_RETRIES: 2,
   INITIAL_BACKOFF_MS: 500,
